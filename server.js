@@ -6,7 +6,7 @@ const seedUsers = [
   { id: 3, name: 'Jamie Chen', email: 'jamie@example.com' },
 ];
 
-function createServer() {
+function createHandler() {
   let users;
   let nextId;
   const reset = () => {
@@ -15,7 +15,7 @@ function createServer() {
   };
   reset();
 
-  return http.createServer(async (req, res) => {
+  return async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -38,6 +38,13 @@ function createServer() {
       if (method === 'OPTIONS') return send(204);
 
       const readJson = async () => {
+        if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '')) {
+          const error = new Error('Use Content-Type: application/json');
+          error.status = 415;
+          throw error;
+        }
+        // Vercel may have already consumed and parsed the request stream.
+        if (req.body !== undefined) return req.body;
         let size = 0;
         const chunks = [];
         for await (const chunk of req) {
@@ -48,11 +55,6 @@ function createServer() {
             throw error;
           }
           chunks.push(chunk);
-        }
-        if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '')) {
-          const error = new Error('Use Content-Type: application/json');
-          error.status = 415;
-          throw error;
         }
         try {
           return JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -156,7 +158,11 @@ function createServer() {
         fail(error.status || 500, error.status ? error.message : 'Internal server error');
       }
     }
-  });
+  };
+}
+
+function createServer() {
+  return http.createServer(createHandler());
 }
 
 if (require.main === module) {
@@ -170,4 +176,4 @@ if (require.main === module) {
   server.listen(port, host, () => console.log(`Classroom mock API running at http://${host}:${port}\nImport classroom.postman_collection.json into Postman to get started.`));
 }
 
-module.exports = { createServer };
+module.exports = { createServer, createHandler };

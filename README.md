@@ -59,3 +59,14 @@ The server binds to your computer only by default. To demo from other devices on
 ```sh
 npm test
 ```
+
+## Deploy on Vercel
+
+The `api/index.js` entry point exports a request handler for Vercel. `vercel.json` routes all paths to it, so the public URLs remain `/users`, `/echo`, and so on. Local `npm start` still works.
+
+1. Push this project, including `api/index.js` and `vercel.json`, to the Git repository connected to Vercel.
+2. In Vercel's project settings, use framework preset **Other**. Remove custom Build Command and Output Directory overrides; this API has no build step or static output directory.
+3. Deploy the updated commit. Test `https://YOUR-PROJECT.vercel.app/health` and `/users`.
+4. Set the Postman collection's `baseUrl` to `https://YOUR-PROJECT.vercel.app`.
+
+Vercel instances do not share in-memory users. Changes can disappear on cold starts and may differ across instances. `/reset` only resets the instance handling that request. Use a persistent database or a single continuously running server for a class that needs consistent shared CRUD state. The current Vercel setup is suitable for demonstrating request/response formats and status codes, but it cannot guarantee that a user created in one request exists on the next request.

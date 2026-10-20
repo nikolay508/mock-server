@@ -1,9 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createServer } = require('./server');
+const http = require('node:http');
 
-test('classroom API supports the full CRUD lesson and error examples', async t => {
-  const server = createServer();
+for (const mode of ['local server', 'Vercel handler']) {
+test(`${mode} supports the full CRUD lesson and error examples`, async t => {
+  const server = mode === 'local server' ? createServer() : http.createServer(require('./api'));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -47,4 +49,23 @@ test('classroom API supports the full CRUD lesson and error examples', async t =
   assert.equal(await (await request('/users', 'HEAD')).text(), '');
   assert.equal((await request('/reset', 'POST')).status, 200);
   assert.equal((await (await request('/users')).json()).total, 3);
+});
+}
+
+test('Vercel handler accepts an already parsed JSON request body', async () => {
+  const { createHandler } = require('./server');
+  const handler = createHandler();
+  let status;
+  let response;
+  await handler({
+    method: 'POST', url: '/users',
+    headers: { 'content-type': 'application/json' },
+    body: { name: 'Vercel Student', email: 'student@example.com' },
+  }, {
+    setHeader() {},
+    writeHead(code) { status = code; },
+    end(body) { response = JSON.parse(body); },
+  });
+  assert.equal(status, 201);
+  assert.equal(response.data.name, 'Vercel Student');
 });
