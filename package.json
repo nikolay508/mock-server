@@ -1,0 +1,11 @@
+{
+  "name": "classroom-mock-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A dependency-free HTTP API for teaching requests and responses in Postman.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=18" }
+}
